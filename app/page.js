@@ -1,101 +1,133 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [problem, setProblem] = useState(null);
+  const [category, setCategory] = useState('calculus');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showSolution, setShowSolution] = useState(false);
+  const maxRetries = 3; // Maximum retries to avoid infinite loop
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const fetchProblem = async (retryCount = 0) => {
+    setLoading(true);
+    setError(null);
+    setShowSolution(false);
+    try {
+      const response = await axios.get(`https://mathxp-api.onrender.com/${category}`);
+      setProblem(response.data);
+    } catch (err) {
+      if (retryCount < maxRetries) {
+        console.log(`Retrying... Attempt ${retryCount + 1}`);
+        fetchProblem(retryCount + 1); // Retry fetching the problem
+      } else {
+        setError('Error fetching problem after multiple attempts');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProblem();
+  }, [category]);
+
+  return (
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      <div className="lg:w-1/4 bg-slate-700 text-white flex flex-col items-center lg:fixed lg:h-full p-4">
+        <h1 className="text-4xl font-bold mb-8">MathXP</h1>
+        <nav className="space-y-4 lg:space-y-8">
+          <button
+            className={`py-2 px-4 w-full rounded ${category === 'calculus' ? 'bg-slate-500' : 'bg-slate-600'}`}
+            onClick={() => setCategory('calculus')}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Calculus
+          </button>
+          <button
+            className={`py-2 px-4 w-full rounded ${category === 'algebra' ? 'bg-slate-500' : 'bg-slate-600'}`}
+            onClick={() => setCategory('algebra')}
           >
-            Read our docs
-          </a>
+            Algebra
+          </button>
+          <button
+            className={`py-2 px-4 w-full rounded ${category === 'linear_algebra' ? 'bg-slate-500' : 'bg-slate-600'}`}
+            onClick={() => setCategory('linear_algebra')}
+          >
+            Linear Algebra
+          </button>
+          <button
+            className={`py-2 px-4 w-full rounded ${category === 'statistics' ? 'bg-slate-500' : 'bg-slate-600'}`}
+            onClick={() => setCategory('statistics')}
+          >
+            Statistics
+          </button>
+        </nav>
+      </div>
+
+      <div className="flex-1 p-8  bg-slate-600 lg:ml-1/4">
+        <div className="text-center mb-8">
+          {loading && <p>Loading...</p>}
+          {error && <p className="text-red-500">{error}</p>}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        {problem && (
+          <div className="text-center">
+            <h3 className="text-xl">Problem:</h3>
+            <p className="my-4">{problem.problem}</p>
+
+            <button
+              className="bg-blue-500 text-white py-2 px-4 rounded m-4"
+              onClick={() => fetchProblem()}
+            >
+              Get New Problem
+            </button>
+
+            {!showSolution && (
+              <button
+                className="bg-green-500 text-white py-2 px-4 rounded m-4"
+                onClick={() => setShowSolution(true)}
+              >
+                Show Solution
+              </button>
+            )}
+
+            {showSolution && (
+              <div className="mt-4">
+                <h3 className="text-xl">Solution:</h3>
+                <p>{JSON.stringify(problem.solution)}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="lg:hidden fixed bottom-0 w-full bg-slate-700 text-white flex justify-around p-4">
+        <button
+          className={`py-2 px-4 ${category === 'calculus' ? 'bg-slate-500' : 'bg-slate-600'}`}
+          onClick={() => setCategory('calculus')}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          Calculus
+        </button>
+        <button
+          className={`py-2 px-4 ${category === 'algebra' ? 'bg-slate-500' : 'bg-slate-600'}`}
+          onClick={() => setCategory('algebra')}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          Algebra
+        </button>
+        <button
+          className={`py-2 px-4 ${category === 'linear_algebra' ? 'bg-slate-500' : 'bg-slate-600'}`}
+          onClick={() => setCategory('linear_algebra')}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Linear Algebra
+        </button>
+        <button
+          className={`py-2 px-4 ${category === 'statistics' ? 'bg-slate-500' : 'bg-slate-600'}`}
+          onClick={() => setCategory('statistics')}
+        >
+          Statistics
+        </button>
+      </div>
     </div>
   );
 }
